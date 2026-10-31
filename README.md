@@ -96,7 +96,7 @@ docs/
 ```bibtex
 @inproceedings{finprobebench2026seshat,
   title     = {Seshat at {FinReason Cup 2026} Task 3: Finding the Flagged Computation in {XBRL} Filings under Hidden Rules},
-  author    = {TODO},
+  author    = {Cao, Run and Kuang, Ziyan and Xie, Qianqian},
   booktitle = {2026 IEEE International Conference on Big Data (BigData), FinReason Cup Working Notes},
   year      = {2026}
 }
