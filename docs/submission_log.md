@@ -28,8 +28,9 @@ Notes:
   a case identifier or its position.
 - S8 replaced the answers of the 19 ambiguous nonnegativity cases and two roll-up cases with zero to
   count the correct answers in each subset (8 of 19 and 0 of 2). Its counts enter no prediction.
-- After S8, three changes (standard-member retry, observed-member fallback, no dimensional imputation)
-  came from reviewing the rule source and the unlabelled test inputs for answers no rule can produce.
+- After S8, three changes entered the final configuration: standard-member retry, observed-member
+  fallback (first submitted once in S6) and no dimensional imputation. They came from reviewing the rule
+  source and the unlabelled test inputs for answers no rule can produce.
   Each changed one test prediction; none changed the development score.
 
 ## Test phase
