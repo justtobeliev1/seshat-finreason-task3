@@ -5,7 +5,7 @@ English | [中文](README.zh.md)
 Code for **Seshat**, the system of team **FinProbeBench** for
 [FinReason Cup 2026](https://the-finai.github.io/IEEE-bigdata-cup/) Task 3 (Financial Audit Verification).
 It accompanies the Working Notes paper
-*Seshat at FinReason Cup 2026 Task 3: Finding the Flagged Computation in XBRL Filings under Hidden Rules*.
+*Seshat: Finding the Flagged Computation in XBRL Filings under Hidden Data Quality Rules*.
 
 Given an excerpt of an SEC XBRL filing, a concept and a period, Task 3 asks for the value the filing
 reports and the value its own relationships imply. Each case is a finding of one of three hidden
@@ -96,7 +96,7 @@ docs/
 
 ```bibtex
 @inproceedings{finprobebench2026seshat,
-  title     = {Seshat at {FinReason Cup 2026} Task 3: Finding the Flagged Computation in {XBRL} Filings under Hidden Rules},
+  title     = {Seshat: Finding the Flagged Computation in {XBRL} Filings under Hidden Data Quality Rules},
   author    = {Cao, Run and Kuang, Ziyan and Xie, Qianqian},
   booktitle = {2026 IEEE International Conference on Big Data (BigData), FinReason Cup Working Notes},
   year      = {2026}

@@ -4,7 +4,7 @@
 
 本仓库是 **FinProbeBench** 队伍在 [FinReason Cup 2026](https://the-finai.github.io/IEEE-bigdata-cup/) Task 3（财务审计核验）中所用系统 **Seshat** 的代码，
 对应的 Working Notes 论文为
-*Seshat at FinReason Cup 2026 Task 3: Finding the Flagged Computation in XBRL Filings under Hidden Rules*。
+*Seshat: Finding the Flagged Computation in XBRL Filings under Hidden Data Quality Rules*。
 
 Task 3 给出一份 SEC XBRL 申报文件的节选、一个概念和一个期间，要求返回两个值：申报文件报告的值，以及由文件自身关系推出的值。
 每个案例都是 XBRL US 数据质量委员会（DQC）三条规则之一（DQC_0015、DQC_0117、DQC_0126）的一条报错，但规则是隐藏的。
@@ -92,7 +92,7 @@ docs/
 
 ```bibtex
 @inproceedings{finprobebench2026seshat,
-  title     = {Seshat at {FinReason Cup 2026} Task 3: Finding the Flagged Computation in {XBRL} Filings under Hidden Rules},
+  title     = {Seshat: Finding the Flagged Computation in {XBRL} Filings under Hidden Data Quality Rules},
   author    = {Cao, Run and Kuang, Ziyan and Xie, Qianqian},
   booktitle = {2026 IEEE International Conference on Big Data (BigData), FinReason Cup Working Notes},
   year      = {2026}
