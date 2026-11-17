@@ -375,11 +375,40 @@ def observed_member_rollup(doc, facts, reported):
                          for m, f in sorted(members.items())]}
 
 
+def _guards_pass(doc, facts, cand, extracted):
+    """Ablation only: an approximation of the DQC_0117 rule 9574 guards, applied to a
+    main-path roll-up (not the code of dqc0117.py): subtotal guard (every multi-dimensional
+    fact on the axis has its one-dimensional member fact), no parenthetical-cube facts on
+    the axis, and note-cube facts on the axis only if one exceeds the reported value.
+    Non-monetary units pass."""
+    from participant.dqc0117 import cubes, _in_cube, _monetary
+    concept, contexts = doc["target"]["concept"], doc["contexts"]
+    axis, unit = cand["axis"], cand.get("unit")
+    if not _monetary(doc, unit):
+        return True
+    def dims_of(f):
+        return contexts.get(f["context"], {}).get("dimensions", {})
+    cf = [f for f in facts if f["concept"] == concept and f.get("unit") == unit and axis in dims_of(f)]
+    single = {dims_of(f)[axis] for f in cf if len(dims_of(f)) == 1}
+    if not all(dims_of(f)[axis] in single for f in cf if len(dims_of(f)) > 1):
+        return False
+    all_cubes = cubes(doc)
+    paren = [f for f in cf if any(c["category"] == "parenthetical" and _in_cube(c, concept, dims_of(f)) for c in all_cubes)]
+    if paren:
+        return False
+    notes = [f for f in cf if any(c["category"] == "notes" and _in_cube(c, concept, dims_of(f)) for c in all_cubes)]
+    if notes and not (extracted is not None and max(f["value"] for f in notes) > extracted):
+        return False
+    return True
+
+
 def predict(query, *, dimension_projection=False, note_domain_fallback=False,
             independent_reconstruction=False, cube_agreement_guard=False,
             negative_policy="least_dims", rule_10093=False, ignore_exemptions=False,
             observed_member_fallback=False, prefer_10093=False, standard_member_retry=False,
-            no_imputation=False, dqc_decimals=False):
+            no_imputation=False, dqc_decimals=False, no_violation_filter=False,
+            path_order="icd", no_10093_silent=False, no_10093_missing_trigger=False,
+            restore_0117_guards=False, no_agree_fallback=False):
     from participant.dqc_rules import nonnegative_applicable
     doc = parse_query(query)
     trace = {"query_sha256": hashlib.sha256(query.encode()).hexdigest(),
@@ -431,15 +460,31 @@ def predict(query, *, dimension_projection=False, note_domain_fallback=False,
                                 note_domain_fallback=note_domain_fallback)
     trace["dimension_projection_assumptions"] = projection_assumptions
     # Use a named DQC nonnegative constraint, rather than a taxonomy balance guess.
-    dim_discrepancies = [c for c in dims if c["value"] != extracted]
-    calc_discrepancies = [c for c in calcs if c["value"] != extracted]
+    if restore_0117_guards and not negative_facts:
+        dims = [c for c in dims if _guards_pass(doc, facts, c, extracted)]
+    if no_violation_filter:
+        dim_discrepancies = list(dims)
+        calc_discrepancies = list(calcs)
+    else:
+        dim_discrepancies = [c for c in dims if c["value"] != extracted]
+        calc_discrepancies = [c for c in calcs if c["value"] != extracted]
     direct_calcs = [c for c in calc_discrepancies if len(c["evidence"]) >= 2]
     cube_dims = [c for c in dim_discrepancies if c.get("governing_cube_roles")]
+    other_dims = [c for c in dim_discrepancies if not c.get("governing_cube_roles")]
+    tiers = {"i": cube_dims, "c": direct_calcs, "d": other_dims}
+    ordered_pick = None
+    if path_order != "icd":
+        for key in path_order:
+            if tiers[key]:
+                ordered_pick = max(tiers[key], key=lambda c: c["rank"])
+                break
     if negative_facts:
         selected = {"kind": "nonnegative", "value": -extracted,
                     "context": reported["context"],
                     "evidence": [{"concept": reported["concept"],
                                   "value": number(extracted), "context": reported["context"]}]}
+    elif ordered_pick is not None:
+        selected = ordered_pick
     elif cube_dims:
         selected = max(cube_dims, key=lambda c: c["rank"])
     elif direct_calcs:
@@ -461,6 +506,8 @@ def predict(query, *, dimension_projection=False, note_domain_fallback=False,
     else:
         if calc_discrepancies:
             selected = max(calc_discrepancies, key=lambda c: c["rank"])
+        elif no_agree_fallback:
+            selected = {"kind": "unresolved", "value": ZERO, "evidence": []}
         elif calcs:
             selected = max(calcs, key=lambda c: c["rank"])
         elif dims:
@@ -478,8 +525,9 @@ def predict(query, *, dimension_projection=False, note_domain_fallback=False,
     # two-dimension breakdown. Use it only where rule 9574 is silent and the
     # current answer is a dimensional view or a calculation with missing operands.
     if (rule_10093 and not negative_facts and (selected["kind"] in ("dimension", "unresolved")
-                                              or (selected["kind"] == "calculation" and selected.get("missing")))):
-        override = rule_10093_override(query, doc, facts)
+                                              or (selected["kind"] == "calculation" and selected.get("missing")
+                                                  and not no_10093_missing_trigger))):
+        override = None if no_10093_silent else rule_10093_override(query, doc, facts)
         if override is None and prefer_10093 and selected["kind"] == "dimension":
             override = rule_10093_override(query, doc, facts, over_9574=True)
         if override is not None:
@@ -551,6 +599,20 @@ def main():
                     help="Use DQC 0117 two-dimension findings where rule 9574 is silent")
     ap.add_argument("--number-format", choices=("plain", "comma"), default="plain",
                     help="Output style; comma adds thousands separators (numeric value unchanged)")
+    # Ablation flags (docs/ablation.md); the defaults leave the predictions unchanged.
+    ap.add_argument("--no-violation-filter", action="store_true",
+                    help="Ablation: keep candidates that agree with the reported value")
+    ap.add_argument("--path-order", default="icd", choices=("icd", "idc", "cid", "cdi", "dic", "dci"),
+                    help="Ablation: order of path tiers i (cube roll-up), c (calculation with two or "
+                         "more observed operands), d (other roll-up); icd is the default")
+    ap.add_argument("--no-10093-silent", action="store_true",
+                    help="Ablation: disable the general switch to DQC 0117 rule 10093 (keeps --prefer-10093)")
+    ap.add_argument("--no-10093-missing-trigger", action="store_true",
+                    help="Ablation: do not trigger the general switch on calculations with missing children")
+    ap.add_argument("--restore-0117-guards", action="store_true",
+                    help="Ablation: approximate rule 9574 guards on main-path roll-ups (see docs/ablation.md)")
+    ap.add_argument("--no-agree-fallback", action="store_true",
+                    help="Ablation: leave a question unresolved instead of falling back to an agreeing candidate")
     args = ap.parse_args()
     for p in [args.output, args.trace]:
         Path(p).parent.mkdir(parents=True, exist_ok=True)
@@ -572,7 +634,13 @@ def main():
                                   prefer_10093=args.prefer_10093,
                                   standard_member_retry=args.standard_member_retry,
                                   no_imputation=args.no_imputation,
-                                  dqc_decimals=args.dqc_decimals)
+                                  dqc_decimals=args.dqc_decimals,
+                                  no_violation_filter=args.no_violation_filter,
+                                  path_order=args.path_order,
+                                  no_10093_silent=args.no_10093_silent,
+                                  no_10093_missing_trigger=args.no_10093_missing_trigger,
+                                  restore_0117_guards=args.restore_0117_guards,
+                                  no_agree_fallback=args.no_agree_fallback)
             if args.number_format == "comma":
                 pred = {k: with_commas(v) for k, v in pred.items()}
             dst.write(json.dumps({"id": row["id"], **pred}) + "\n")

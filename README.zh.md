@@ -17,7 +17,7 @@ Seshat 从节选中恢复结构化证据，形成候选计算，再用任务本�
 | test（官方判分） | 97.21%，23 支队伍中第 4 名 |
 | dev（官方判分） | 97.94% |
 | 隐藏规则推断正确 | dev 680/680，test 680/680 |
-| 运行时间 | 笔记本单核 CPU 约 2.5 秒完成 680 个案例 |
+| 运行时间 | 680 个案例端到端中位数 2.82 秒（Dev）/ 2.69 秒（Test），单进程（Python 3.14.3，Apple M5，5 次） |
 
 ## 环境要求
 
@@ -69,7 +69,7 @@ python -m pytest -q participant
 | `--no-imputation` | 不用维度事实填补缺失的计算子项 |
 | `--number-format comma` | 输出数字带千分位分隔符 |
 
-所有参数默认关闭。`solve.py` 中的其他参数是最终配置没有使用的实验选项。
+所有参数默认关闭。`solve.py` 中的其他参数是最终配置没有使用的实验选项，或 `docs/ablation.md` 列出的消融参数。
 
 ## 目录结构
 
@@ -85,6 +85,7 @@ participant/
   test_*.py                单元测试
 docs/
   submission_log.md        全部 dev 提交与 test 上传记录
+  ablation.md              组件消融（论文表 VI）的命令
 ```
 
 ## 引用

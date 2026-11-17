@@ -19,7 +19,7 @@ case is a finding (violation constraint). It calls no language model.
 | Test (official judge) | 97.21%, 4th of 23 teams |
 | Development (official judge) | 97.94% |
 | Rule inferred correctly | 680/680 development, 680/680 test |
-| Runtime | about 2.5 s for 680 cases on one laptop CPU core |
+| Runtime | median 2.82 s (Dev) / 2.69 s (Test) for 680 cases, end to end, one process (Python 3.14.3, Apple M5, 5 runs) |
 
 ## Requirements
 
@@ -73,7 +73,7 @@ python -m pytest -q participant
 | `--number-format comma` | print numbers with thousands separators |
 
 All flags are off by default. Other flags in `solve.py` are experiments that the final
-configuration does not use.
+configuration does not use, or ablation flags listed in `docs/ablation.md`.
 
 ## Layout
 
@@ -89,6 +89,7 @@ participant/
   test_*.py                unit tests
 docs/
   submission_log.md        all development submissions and test uploads
+  ablation.md              commands for the component ablation (paper, Table VI)
 ```
 
 ## Citation
